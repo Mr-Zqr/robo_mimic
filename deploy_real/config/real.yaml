@@ -1,4 +1,5 @@
-net: enp2s0
+# net: enp2s0
+net: lo
 num_joints: 29
 
 lowcmd_topic: "rt/lowcmd"

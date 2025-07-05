@@ -13,7 +13,7 @@ import os
 from common.ctrlcomp import *
 from FSM.FSM import *
 from common.utils import get_gravity_orientation
-from common.joystick import JoyStick, JoystickButton
+from common.joystick import JoyStick, JoystickButton, Keyboard, KeyboardButton
 
 
 
@@ -44,34 +44,57 @@ if __name__ == "__main__":
     policy_output = PolicyOutput(num_joints)
     FSM_controller = FSM(state_cmd, policy_output)
     
-    joystick = JoyStick()
+    # Try to initialize joystick first, fallback to keyboard if no joystick is connected
+    try:
+        controller = JoyStick()
+        button_enum = JoystickButton
+        print("Joystick controller initialized successfully!")
+    except RuntimeError:
+        print("No joystick detected, switching to keyboard control...")
+        print("=" * 60)
+        print("🎮 KEYBOARD CONTROL MODE ACTIVATED")
+        print("=" * 60)
+        print("📌 IMPORTANT: A separate control window will open!")
+        print("   Focus on the 'Robot Keyboard Controller' window for input")
+        print("   (NOT the MuJoCo window - it has conflicting shortcuts)")
+        print("")
+        print("🎯 Controls:")
+        print("   WASD - Move robot")
+        print("   Shift+Arrows - Rotate")
+        print("   J(A), K(B), U(X), I(Y) - Action buttons")
+        print("   Q(L1), E(R1) - Shoulder buttons")
+        print("   Space(START), Esc(EXIT)")
+        print("=" * 60)
+        controller = Keyboard()
+        button_enum = KeyboardButton
+        
     Running = True
     with mujoco.viewer.launch_passive(m, d) as viewer:
         sim_start_time = time.time()
         while viewer.is_running() and Running:
             try:
-                if(joystick.is_button_pressed(JoystickButton.SELECT)):
+                if(controller.is_button_pressed(button_enum.SELECT)):
                     Running = False
 
-                joystick.update()
-                if joystick.is_button_released(JoystickButton.L3):
+                controller.update()
+                if controller.is_button_released(button_enum.L3):
                     state_cmd.skill_cmd = FSMCommand.PASSIVE
-                if joystick.is_button_released(JoystickButton.START):
+                if controller.is_button_released(button_enum.START):
                     state_cmd.skill_cmd = FSMCommand.POS_RESET
-                if joystick.is_button_released(JoystickButton.A) and joystick.is_button_pressed(JoystickButton.R1):
+                if controller.is_button_released(button_enum.A) and controller.is_button_pressed(button_enum.R1):
                     state_cmd.skill_cmd = FSMCommand.LOCO
-                if joystick.is_button_released(JoystickButton.X) and joystick.is_button_pressed(JoystickButton.R1):
+                if controller.is_button_released(button_enum.X) and controller.is_button_pressed(button_enum.R1):
                     state_cmd.skill_cmd = FSMCommand.SKILL_1
-                if joystick.is_button_released(JoystickButton.Y) and joystick.is_button_pressed(JoystickButton.R1):
+                if controller.is_button_released(button_enum.Y) and controller.is_button_pressed(button_enum.R1):
                     state_cmd.skill_cmd = FSMCommand.SKILL_2
-                if joystick.is_button_released(JoystickButton.B) and joystick.is_button_pressed(JoystickButton.R1):
+                if controller.is_button_released(button_enum.B) and controller.is_button_pressed(button_enum.R1):
                     state_cmd.skill_cmd = FSMCommand.SKILL_3
-                if joystick.is_button_released(JoystickButton.Y) and joystick.is_button_pressed(JoystickButton.L1):
+                if controller.is_button_released(button_enum.Y) and controller.is_button_pressed(button_enum.L1):
                     state_cmd.skill_cmd = FSMCommand.SKILL_4
                 
-                state_cmd.vel_cmd[0] = -joystick.get_axis_value(1)
-                state_cmd.vel_cmd[1] = -joystick.get_axis_value(0)
-                state_cmd.vel_cmd[2] = -joystick.get_axis_value(3)
+                state_cmd.vel_cmd[0] = -controller.get_axis_value(1)
+                state_cmd.vel_cmd[1] = -controller.get_axis_value(0)
+                state_cmd.vel_cmd[2] = -controller.get_axis_value(3)
                 
                 step_start = time.time()
                 
