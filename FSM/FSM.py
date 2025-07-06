@@ -9,6 +9,7 @@ from policy.skill_cooldown.SkillCooldown import SkillCooldown
 from policy.skill_cast.SkillCast import SkillCast
 from policy.kick.Kick import Kick
 from policy.kungfu2.KungFu2 import KungFu2
+from policy.accad_male_b13.AccadMaleB13 import AccadMaleB13
 from FSM.FSMState import *
 import time
 from common.ctrlcomp import *
@@ -37,6 +38,7 @@ class FSM:
         self.skill_cast_policy = SkillCast(state_cmd, policy_output)
         self.kick_policy = Kick(state_cmd, policy_output)
         self.kungfu2_policy = KungFu2(state_cmd, policy_output)
+        self.accad_male_b13 = AccadMaleB13(state_cmd, policy_output)
         
         print("initalized all policies!!!")
         
@@ -87,6 +89,8 @@ class FSM:
             self.cur_policy = self.kungfu_policy
         elif((policy_name == FSMStateName.SKILL_Dance)):
             self.cur_policy = self.dance_policy
+        elif((policy_name == FSMStateName.SKILL_AccadMaleB13)):
+            self.cur_policy = self.accad_male_b13
         elif((policy_name == FSMStateName.SKILL_COOLDOWN)):
             self.cur_policy = self.skill_cooldown_policy
         elif((policy_name == FSMStateName.SKILL_CAST)):

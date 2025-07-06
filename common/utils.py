@@ -15,7 +15,7 @@ class FSMStateName(Enum):
     SKILL_Dance = 7
     SKILL_KICK = 8
     SKILL_KungFu2 = 9
-   
+    SKILL_AccadMaleB13 = 10
 
 @unique
 class FSMCommand(Enum):
@@ -26,7 +26,7 @@ class FSMCommand(Enum):
     SKILL_1 = 5
     SKILL_2 = 6
     SKILL_3 = 7
-    SKILL_4 = 8
+    SKILL_4 = 10
     
     
     

@@ -158,22 +158,20 @@ class Controller:
         # Record timestamp
         self.logger.record("timestamp", timestamp)
         
-        # Record actual joint positions
-        for i in range(self.num_joints):
-            self.logger.record(f"actual_q_{i}", self.qj[i])
-            self.logger.record(f"actual_dq_{i}", self.dqj[i])
-        
-        # Record target joint positions
+        # Record joint data using joint names
         policy_output_action = self.policy_output.actions.copy()
-        for i in range(self.num_joints):
-            self.logger.record(f"target_q_{i}", policy_output_action[i])
-            
-        # Record control gains
         kps = self.policy_output.kps.copy()
         kds = self.policy_output.kds.copy()
+        
         for i in range(self.num_joints):
-            self.logger.record(f"kp_{i}", kps[i])
-            self.logger.record(f"kd_{i}", kds[i])
+            self.logger.record_joint_data(
+                joint_index=i,
+                target_q=policy_output_action[i],
+                actual_q=self.qj[i],
+                actual_dq=self.dqj[i],
+                kp=kps[i],
+                kd=kds[i]
+            )
             
         # Record velocity commands
         self.logger.record("vel_cmd_x", self.state_cmd.vel_cmd[0])
@@ -182,7 +180,7 @@ class Controller:
         
         # Record FSM state
         self.logger.record("fsm_state", self.FSM_controller.cur_policy.name_str)
-        self.logger.record("fsm_state_enum", str(self.FSM_controller.cur_policy.name))
+        self.logger.record("fsm_state_enum", self.FSM_controller.cur_policy.name.value)
         
         # Record IMU data
         self.logger.record("gravity_ori_x", self.state_cmd.gravity_ori[0])
@@ -311,8 +309,8 @@ if __name__ == "__main__":
         try:
             controller.run()
             # Press the select key to exit
-            if controller.remote_controller.is_button_pressed(KeyMap.select):
-                break
+            # if controller.remote_controller.is_button_pressed(KeyMap.select):
+                # break
         except KeyboardInterrupt:
             break
     

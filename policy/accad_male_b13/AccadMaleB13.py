@@ -11,19 +11,19 @@ import torch
 import os
 
 
-class Dance(FSMState):
+class AccadMaleB13(FSMState):
     def __init__(self, state_cmd:StateAndCmd, policy_output:PolicyOutput):
         super().__init__()
         self.state_cmd = state_cmd
         self.policy_output = policy_output
-        self.name = FSMStateName.SKILL_Dance
-        self.name_str = "skill_dance"
+        self.name = FSMStateName.SKILL_AccadMaleB13
+        self.name_str = "accad_male_b13"
         self.motion_phase = 0
         self.counter_step = 0
         self.ref_motion_phase = 0
         
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        config_path = os.path.join(current_dir, "config", "Dance.yaml")
+        config_path = os.path.join(current_dir, "config", "AccadMaleB13.yaml")
         with open(config_path, "r") as f:
             config = yaml.load(f, Loader=yaml.FullLoader)
             self.onnx_path = os.path.join(current_dir, "model", config["onnx_path"])
@@ -63,7 +63,7 @@ class Dance(FSMState):
                 obs_tensor = obs_tensor.astype(np.float32)
                 self.ort_session.run(None, {self.input_name: obs_tensor})[0]
                     
-            print("Dance policy initializing ...")
+            print("Male walk policy initializing ...")
     
     def enter(self):
         self.action = np.zeros(23, dtype=np.float32)
@@ -116,7 +116,15 @@ class Dance(FSMState):
                                                 self.proj_g_buf, 
                                                 self.ref_motion_phase_buf
                                                 ), 
-                                                axis=-1, dtype=np.float32)
+                                               axis=-1, dtype=np.float32)
+        # mimic_history_obs_buf = np.concatenate((self.ang_vel_buf, 
+        #                                         self.proj_g_buf, 
+        #                                         self.dof_pos_buf, 
+        #                                         self.dof_vel_buf, 
+        #                                         self.action_buf, 
+        #                                         self.ref_motion_phase_buf
+        #                                         ), 
+        #                                         axis=-1, dtype=np.float32)
         
         mimic_obs_buf = np.concatenate((self.action,
                                         ang_vel,
@@ -146,9 +154,8 @@ class Dance(FSMState):
         self.counter_step += 1
         motion_time = self.counter_step * 0.02
         self.ref_motion_phase = motion_time / self.motion_length
-        print("phase: ", self.ref_motion_phase )
         motion_time = min(motion_time, self.motion_length)
-        # print(progress_bar(motion_time, self.motion_length), end="", flush=True)
+        print(progress_bar(motion_time, self.motion_length), end="", flush=True)
     
     def exit(self):
         self.action = np.zeros(23, dtype=np.float32)
@@ -172,4 +179,4 @@ class Dance(FSMState):
             return FSMStateName.FIXEDPOSE
         else:
             self.state_cmd.skill_cmd = FSMCommand.INVALID
-            return FSMStateName.SKILL_Dance
+            return FSMStateName.SKILL_AccadMaleB13
