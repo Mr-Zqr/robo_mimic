@@ -155,7 +155,13 @@ class AccadMaleB13(FSMState):
         motion_time = self.counter_step * 0.02
         self.ref_motion_phase = motion_time / self.motion_length
         motion_time = min(motion_time, self.motion_length)
-        print(progress_bar(motion_time, self.motion_length), end="", flush=True)
+        # print(progress_bar(motion_time, self.motion_length), end="", flush=True)
+
+        print(f"ref_motion_phase: {self.ref_motion_phase:.4f}")
+        if self.ref_motion_phase >=0.8:
+            # 自动切换至passivemode
+            self.state_cmd.skill_cmd = FSMCommand.PASSIVE
+
     
     def exit(self):
         self.action = np.zeros(23, dtype=np.float32)
@@ -164,7 +170,7 @@ class AccadMaleB13(FSMState):
         self.ref_motion_phase_buf = np.zeros(1 * self.history_length, dtype=np.float32)
         self.motion_time = 0
         self.counter_step = 0
-        print()
+        print("exited")
 
     
     def checkChange(self):
