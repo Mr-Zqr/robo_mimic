@@ -102,12 +102,6 @@ class AccadMaleB13(FSMState):
         dqj_23dof = dqj_23dof * self.dof_vel_scale
         ang_vel = ang_vel * self.ang_vel_scale
         
-        self.ang_vel_buf = np.concatenate((ang_vel, self.ang_vel_buf[:-3]), axis=-1, dtype=np.float32)
-        self.proj_g_buf = np.concatenate((gravity_orientation, self.proj_g_buf[:-3] ), axis=-1, dtype=np.float32)
-        self.dof_pos_buf = np.concatenate((qj_23dof, self.dof_pos_buf[:-23] ), axis=-1, dtype=np.float32)
-        self.dof_vel_buf = np.concatenate((dqj_23dof, self.dof_vel_buf[:-23] ), axis=-1, dtype=np.float32)
-        self.action_buf = np.concatenate((self.action, self.action_buf[:-23] ), axis=-1, dtype=np.float32)
-        self.ref_motion_phase_buf = np.concatenate((np.array([min(self.ref_motion_phase,1.0)]), self.ref_motion_phase_buf[:-1] ), axis=-1, dtype=np.float32)
         
         mimic_history_obs_buf = np.concatenate((self.action_buf, 
                                                 self.ang_vel_buf, 
@@ -117,6 +111,12 @@ class AccadMaleB13(FSMState):
                                                 self.ref_motion_phase_buf
                                                 ), 
                                                axis=-1, dtype=np.float32)
+        self.ang_vel_buf = np.concatenate((ang_vel, self.ang_vel_buf[:-3]), axis=-1, dtype=np.float32)
+        self.proj_g_buf = np.concatenate((gravity_orientation, self.proj_g_buf[:-3] ), axis=-1, dtype=np.float32)
+        self.dof_pos_buf = np.concatenate((qj_23dof, self.dof_pos_buf[:-23] ), axis=-1, dtype=np.float32)
+        self.dof_vel_buf = np.concatenate((dqj_23dof, self.dof_vel_buf[:-23] ), axis=-1, dtype=np.float32)
+        self.action_buf = np.concatenate((self.action, self.action_buf[:-23] ), axis=-1, dtype=np.float32)
+        self.ref_motion_phase_buf = np.concatenate((np.array([min(self.ref_motion_phase,1.0)]), self.ref_motion_phase_buf[:-1] ), axis=-1, dtype=np.float32)
         # mimic_history_obs_buf = np.concatenate((self.ang_vel_buf, 
         #                                         self.proj_g_buf, 
         #                                         self.dof_pos_buf, 
@@ -140,6 +140,8 @@ class AccadMaleB13(FSMState):
         self.action = np.squeeze(self.ort_session.run(None, {self.input_name: mimic_obs_tensor})[0])
         target_dof_pos = np.zeros(29)
         target_dof_pos[:15] = self.action[:15] * self.action_scale + self.default_angles[:15]
+        # target_dof_pos[:13] = self.action[:13] * self.action_scale + self.default_angles[:13]
+        # target_dof_pos[13:15] = self.default_angles[13:15]  # Waist yaw
         target_dof_pos[15:19] = self.action[15:19] * self.action_scale + self.default_angles[15:19]
         target_dof_pos[22:26] = self.action[19:] * self.action_scale + self.default_angles[22:26]
         
@@ -155,12 +157,12 @@ class AccadMaleB13(FSMState):
         motion_time = self.counter_step * 0.02
         self.ref_motion_phase = motion_time / self.motion_length
         motion_time = min(motion_time, self.motion_length)
-        # print(progress_bar(motion_time, self.motion_length), end="", flush=True)
+        print(progress_bar(motion_time, self.motion_length), end="", flush=True)
 
-        print(f"ref_motion_phase: {self.ref_motion_phase:.4f}")
-        if self.ref_motion_phase >=0.8:
+        # print(f"ref_motion_phase: {self.ref_motion_phase:.4f}")
+        # if self.ref_motion_phase >=0.8:
             # 自动切换至passivemode
-            self.state_cmd.skill_cmd = FSMCommand.PASSIVE
+            # self.state_cmd.skill_cmd = FSMCommand.PASSIVE
 
     
     def exit(self):

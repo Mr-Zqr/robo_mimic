@@ -30,6 +30,7 @@ from common.joystick import Keyboard, KeyboardButton
 from config import Config
 from common.deploy_logger import DeployLogger
 
+rad2deg = 180.0 / np.pi
 
 class Controller:
     def __init__(self, config: Config):
@@ -56,6 +57,7 @@ class Controller:
 
         self.num_joints = config.num_joints
         self.control_dt = config.control_dt
+        self.first_log = True
         
         
         self.low_cmd = unitree_hg_msg_dds__LowCmd_()
@@ -153,11 +155,22 @@ class Controller:
 
     def record_control_data(self):
         """Record current control cycle data"""
-        timestamp = time.time()
-        
+        if self.first_log:
+            self.time0 = time.time()
+
+        timestamp = time.time() - self.time0
         # Record timestamp
         self.logger.record("timestamp", timestamp)
-        
+
+                
+        if self.first_log:
+            self.logger.record("loop_time", 0.0)
+            self.first_log = False
+        else:
+            self.logger.record("loop_time", timestamp - self.last_state_time)
+        self.last_state_time = timestamp
+
+        self.logger.record("overtime_counter", self.counter_over_time)
         # Record joint data using joint names
         policy_output_action = self.policy_output.actions.copy()
         kps = self.policy_output.kps.copy()
@@ -166,9 +179,9 @@ class Controller:
         for i in range(self.num_joints):
             self.logger.record_joint_data(
                 joint_index=i,
-                target_q=policy_output_action[i],
-                actual_q=self.qj[i],
-                actual_dq=self.dqj[i],
+                target_q=policy_output_action[i]*rad2deg,
+                actual_q=self.qj[i]*rad2deg,
+                actual_dq=self.dqj[i]*rad2deg,
                 kp=kps[i],
                 kd=kds[i]
             )
@@ -233,6 +246,7 @@ class Controller:
                 self.state_cmd.skill_cmd = FSMCommand.SKILL_3
             if self.remote_controller.is_button_released(self.button_enum.Y) and self.remote_controller.is_button_pressed(self.button_enum.L1):
                 self.state_cmd.skill_cmd = FSMCommand.SKILL_4
+            
             # if self.remote_controller.is_button_pressed(KeyMap.B) and self.remote_controller.is_button_pressed(KeyMap.R1):
             #     self.state_cmd.skill_cmd = FSMCommand.SKILL_3
             # if self.remote_controller.is_button_pressed(KeyMap.Y) and self.remote_controller.is_button_pressed(KeyMap.L1):
@@ -244,6 +258,9 @@ class Controller:
             self.state_cmd.vel_cmd[0] = -self.remote_controller.get_axis_value(1)
             self.state_cmd.vel_cmd[1] = -self.remote_controller.get_axis_value(0)
             self.state_cmd.vel_cmd[2] = -self.remote_controller.get_axis_value(3)
+
+            controller_end_time = time.time()
+            self.logger.record("controller_time", controller_end_time - loop_start_time)
 
             for i in range(self.num_joints):
                 self.qj[i] = self.low_state.motor_state[i].q
@@ -259,12 +276,18 @@ class Controller:
             self.state_cmd.dq = self.dqj.copy()
             self.state_cmd.gravity_ori = gravity_orientation.copy()
             self.state_cmd.ang_vel = ang_vel.copy()
+
+            fetch_state_time = time.time()
+            self.logger.record("fetch_state_time", fetch_state_time - controller_end_time)
             
             self.FSM_controller.run()
+            policy_time = time.time()
+            self.logger.record("policy_time", policy_time - fetch_state_time)
             policy_output_action = self.policy_output.actions.copy()
             kps = self.policy_output.kps.copy()
             kds = self.policy_output.kds.copy()
-            
+
+
             # Handle data logging
             self.handle_logging()
             
@@ -280,7 +303,9 @@ class Controller:
             # create_damping_cmd(controller.low_cmd) # only for debug
             self.send_cmd(self.low_cmd)
             
-            self.handle_logging()  # Manage logging based on FSM state
+            send_command_time = time.time()
+            self.logger.record("send_command_time", send_command_time - policy_time)
+            # self.handle_logging()  # Manage logging based on FSM state
             
             loop_end_time = time.time()
             delta_time = loop_end_time - loop_start_time

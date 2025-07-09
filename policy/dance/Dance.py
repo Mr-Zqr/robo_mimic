@@ -131,7 +131,9 @@ class Dance(FSMState):
         mimic_obs_tensor = torch.from_numpy(mimic_obs_buf).unsqueeze(0).cpu().numpy()
         self.action = np.squeeze(self.ort_session.run(None, {self.input_name: mimic_obs_tensor})[0])
         target_dof_pos = np.zeros(29)
-        target_dof_pos[:15] = self.action[:15] * self.action_scale + self.default_angles[:15]
+        # target_dof_pos[:15] = self.action[:15] * self.action_scale + self.default_angles[:15]
+        target_dof_pos[:13] = self.action[:13] * self.action_scale + self.default_angles[:13]
+        target_dof_pos[13:15] = self.default_angles[13:15]  # Waist yaw
         target_dof_pos[15:19] = self.action[15:19] * self.action_scale + self.default_angles[15:19]
         target_dof_pos[22:26] = self.action[19:] * self.action_scale + self.default_angles[22:26]
         
@@ -146,7 +148,7 @@ class Dance(FSMState):
         self.counter_step += 1
         motion_time = self.counter_step * 0.02
         self.ref_motion_phase = motion_time / self.motion_length
-        print("phase: ", self.ref_motion_phase )
+        # print("phase: ", self.ref_motion_phase )
         motion_time = min(motion_time, self.motion_length)
         # print(progress_bar(motion_time, self.motion_length), end="", flush=True)
     
